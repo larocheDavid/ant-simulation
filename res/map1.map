@@ -1,0 +1,27 @@
+#anthill posX posY [workerProb]
+anthill 50 30 0.6
+anthill 160 250 0.4
+anthill 500 500
+
+#food posX posY quantity
+food 160 135 50
+food 259 235 20
+food 360 334 20
+food 461 435 20
+food 560 436 20
+
+food 745 530 50
+food 844 630 20
+food 245 729 20
+food 46 830 20
+
+
+#termite posX posY
+termite 130 40
+termite 231 240
+termite 332 340
+termite 433 440
+termite 534 540
+termite 635 640
+termite 736 740
+

@@ -1,0 +1,79 @@
+import os
+
+AddOption('--cfg',
+           dest='cfg',
+           type='string',
+           nargs=1,
+           action='store',
+           metavar='DIR',
+           help='custom cfg filename')
+
+env = Environment(CFG = GetOption('cfg'))
+
+if env['PLATFORM'] == 'darwin':
+    env['CXX'] = 'clang++'
+    env['CCFLAGS'] = '-stdlib=libc++ '
+    env['LINKFLAGS'] = '-stdlib=libc++ '
+elif env['PLATFORM'] == 'posix':
+    env['CXX'] = 'g++'
+    env['CCFLAGS'] = '-Wno-narrowing '
+    env.Append(LIBPATH='/usr/local/softs/SFML/lib/')
+
+
+env.Append(CCFLAGS='-std=c++0x -g3 -Wall -Wextra -I/usr/local/include/ -I/usr/local/softs/SFML/include/ ')
+env.Append(LIBS=['sfml-system', 'sfml-window', 'sfml-graphics'])
+env.Decider('content')
+
+src_dir = ['.'] # use the copy made by VariantDir
+
+
+# Source files :
+ani_src         = Glob('Animal/*.cpp')
+app_src         = Glob('Application.cpp')
+cfg_src         = Glob('ConfigManager/ConfigManager.cpp')
+env_src         = Glob('Environment/*.cpp')
+rand_src        = Glob('Random/*.cpp')
+stats_src       = Glob('Stats/*.cpp')
+utility_src     = Glob('Utility/*.cpp')
+
+src_files =  app_src + cfg_src + env_src + rand_src + stats_src + utility_src + ani_src
+objects=env.Object(source=src_files)
+
+# Use CPPPATH to automatically detect changes in header files and rebuild cpp files that need those headers.
+# This also automatically add -Isrc/ option.
+all_src_files = src_files
+def DefineProgram(name, additional_src):
+    for file in additional_src:
+        all_src_files.append(file)
+
+    target = env.Program(name, source = objects + additional_src, CPPPATH = src_dir)
+    env.Alias(name, target)
+    run = env.Command(name+".out",[],"./build/"+name+" $CFG", ENV = os.environ)
+    env.Alias(name+"-run", run)
+    env.Depends(run, target)
+    env.AlwaysBuild(run)
+    env.Default(target) # prevent auto execution of 'run' targets
+                        # when running `scons -Q`, for example
+    ddd = env.Command(name+".ddd.out",[],"ddd --args ./build/"+name+" $CFG", ENV = os.environ)
+    env.Depends(ddd, target)
+    env.Alias(name+"-ddd", ddd)
+
+
+DefineProgram('test_configmanager', Glob('Tests/ConfigManagerTest.cpp'))
+DefineProgram('test_pheromone', Glob('Tests/PheromoneTest.cpp'))
+DefineProgram('test_toric', Glob('Tests/ToricTest.cpp'))
+DefineProgram('test_anthill', Glob('Tests/AnthillTest.cpp'))
+DefineProgram('test_ant', Glob('Tests/AntTest.cpp'))
+DefineProgram('test_termite', Glob('Tests/TermiteTest.cpp'))
+DefineProgram('test_enemy', Glob('Tests/EnemyTest.cpp'))
+
+DefineProgram('application', Glob('FinalApplication.cpp'))
+
+DefineProgram('cfgexporter', Glob('ConfigManager/ConfigExporter.cpp'))
+
+if env['CXX'] == 'clang++':
+    analyze_cmd = "clang++ -std=c++11 -stdlib=libc++ -Wall -Wextra -Werror -I/usr/local/include/ -I/usr/local/SFML/include/ --analyze -Xanalyzer -analyzer-output='html' "
+    file_list = ' '.join('"' + str(f) + '"' for f in all_src_files)
+    analyze = env.Command("analyze.out", all_src_files, analyze_cmd + file_list, ENV = os.environ)
+    env.Alias("analyze", analyze)
+
